@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or "BayarInternet" }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: "#0d9488",
+            accent: "#134e4a",
+            surface: "#f8fafc"
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-surface text-slate-800 antialiased">
+  <header class="sticky top-0 z-30 border-b border-teal-100 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+      <a href="{{ url_for('root') }}" class="flex items-center gap-3">
+        <img src="{{ url_for('static', filename='img/bayarinter-logo.svg') }}" alt="BayarInternet" class="h-9 w-9 rounded-xl shadow-sm">
+        <div>
+          <p class="text-sm font-semibold leading-tight text-slate-900">BayarInternet</p>
+          <p class="text-[11px] leading-tight text-slate-500">Router Billing & Monitoring</p>
+        </div>
+      </a>
+      <a
+        href="https://wa.me/628562603077?text=Halo%20Admin%20BayarInternet%2C%20saya%20ingin%20mendaftar%20router%20untuk%20layanan%20billing."
+        target="_blank"
+        rel="noopener noreferrer"
+        class="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700"
+      >
+        Hubungi Admin
+      </a>
+    </div>
+  </header>
+
+  <main class="pb-12">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="px-4 pb-8 sm:px-6">
+    <div class="mx-auto w-full max-w-7xl text-center text-xs text-slate-500">
+      BayarInternet {% if now_year %} &copy; {{ now_year }}{% endif %}
+    </div>
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

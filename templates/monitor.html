@@ -1,0 +1,71 @@
+{% extends "base_public.html" %}
+
+{% block content %}
+<section class="mx-auto w-full max-w-7xl px-4 pt-8 sm:px-6">
+  <div class="rounded-3xl bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-600 p-6 text-white shadow-lg sm:p-8">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="text-xs uppercase tracking-widest text-teal-100">Monitoring &#128269;</p>
+        <h1 class="text-2xl font-bold sm:text-3xl">
+          {% if router %}&#128225; {{ router.label }}{% else %}Router tidak ditemukan{% endif %}
+        </h1>
+      </div>
+      <div class="flex items-center gap-2">
+        {% if router %}
+        <a href="{{ url_for('billing_login', router_id=router.id) }}" class="rounded-lg bg-violet-500/90 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-500">&#128273; Login Billing</a>
+        {% endif %}
+        <a href="{{ url_for('public_monitor', router_id=router.id) if router else url_for('root') }}" class="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold hover:bg-white/25">&#128260; Refresh</a>
+        <a href="{{ url_for('root') }}" class="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-teal-700 hover:bg-teal-50">&#11013;&#65039; Kembali</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="mx-auto w-full max-w-7xl px-4 pb-8 pt-6 sm:px-6">
+  {% if active_error %}
+  <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+    <span class="font-semibold">&#9888;&#65039; Gagal memuat data:</span> {{ active_error }}
+  </div>
+  {% else %}
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-100 px-4 py-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="font-semibold text-slate-800">&#128246; User Active Connection</h2>
+        <span class="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-700">{{ active_items|length }} user</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="table-modern">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Username</th>
+            <th>Address</th>
+            <th>Uptime</th>
+            <th>Aktif Mulai</th>
+            <th>Service</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in active_items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.name or "-" }}</td>
+            <td>{{ item.address or "-" }}</td>
+            <td>{{ item.uptime_readable or "-" }}</td>
+            <td>{{ item.active_since or "-" }}</td>
+            <td>{{ item.service or "-" }}</td>
+          </tr>
+          {% endfor %}
+          {% if not active_items %}
+          <tr>
+            <td colspan="6" class="is-center py-8 text-slate-500">Tidak ada user yang sedang aktif.</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

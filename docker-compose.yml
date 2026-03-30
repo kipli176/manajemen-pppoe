@@ -1,0 +1,23 @@
+networks:
+  cloudflared:
+    external: true        # pastikan network ini sudah ada (cloudflared)
+
+services:
+  bayarinternet2026:
+    image: python:3.11-slim
+    command: sh -c "pip install -r requirements.txt && python main.py"
+    working_dir: /app
+    container_name: bayarinternet2026
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Jakarta
+    ports:
+      - "5000"  # akses lokal: http://localhost:5000
+    volumes:
+      - ./:/app:rw    # serve front-end dari folder host
+      # (opsional) hot-reload server saat dev:
+      # - ../server:/usr/src/app:rw
+    networks:
+      - cloudflared   # agar bisa di-attach ke Cloudflare Tunnel

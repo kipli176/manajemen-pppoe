@@ -1,0 +1,232 @@
+{% extends "base_public.html" %}
+
+{% block content %}
+<section class="mx-auto w-full max-w-7xl px-4 pt-8 sm:px-6">
+  <div class="overflow-hidden rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-600 p-6 text-white shadow-xl sm:p-9">
+    <div class="grid gap-6 lg:grid-cols-2 lg:items-center">
+      <div>
+        <p class="text-xs uppercase tracking-[0.2em] text-teal-100">Billing Reseller Internet</p>
+        <h1 class="mt-3 text-2xl font-bold leading-tight sm:text-4xl">
+          {{ landing_copy.hero_title }}
+        </h1>
+        <p class="mt-3 max-w-2xl text-sm text-teal-100 sm:text-base">
+          {{ landing_copy.hero_subtitle }}
+        </p>
+        <div class="mt-5 flex flex-wrap items-center gap-2">
+          <a href="{{ url_for('billing_register') }}" class="inline-flex rounded-lg border border-white/30 bg-white/15 px-3 py-2 text-xs font-semibold text-white hover:bg-white/25">
+            &#10133; {{ landing_copy.cta_primary }}
+          </a>
+          <a href="#daftar-client" class="inline-flex rounded-lg border border-white/30 bg-emerald-500/30 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500/45">
+            &#128200; {{ landing_copy.cta_secondary }}
+          </a>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+          <p class="text-[11px] uppercase tracking-widest text-teal-100">Client Terdaftar</p>
+          <p class="mt-1 text-2xl font-bold">{{ routers|length }}</p>
+          <p class="mt-1 text-xs text-teal-100">Siap dikelola terpusat</p>
+        </div>
+        <div class="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+          <p class="text-[11px] uppercase tracking-widest text-teal-100">Kontrol Akses</p>
+          <p class="mt-1 text-2xl font-bold">&#128272; Lebih Aman</p>
+          <p class="mt-1 text-xs text-teal-100">Akses sesuai status langganan</p>
+        </div>
+        <div class="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+          <p class="text-[11px] uppercase tracking-widest text-teal-100">Setup Cepat</p>
+          <p class="mt-1 text-2xl font-bold">&#9889; Praktis</p>
+          <p class="mt-1 text-xs text-teal-100">Aktivasi tanpa proses rumit</p>
+        </div>
+        <div class="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+          <p class="text-[11px] uppercase tracking-widest text-teal-100">Keuangan</p>
+          <p class="mt-1 text-2xl font-bold">&#128176; Terukur</p>
+          <p class="mt-1 text-xs text-teal-100">Histori transaksi tercatat</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6">
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">&#128170; Mudah Dipakai</p>
+      <p class="mt-2 text-sm text-slate-700">Tampilan ringkas dan alur jelas, nyaman dipakai operator harian.</p>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">&#128241; Notifikasi Cepat</p>
+      <p class="mt-2 text-sm text-slate-700">Pengingat dan komunikasi pembayaran jadi lebih cepat dan terarah.</p>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">&#128246; Monitoring Harian</p>
+      <p class="mt-2 text-sm text-slate-700">Pantau koneksi aktif dengan cepat saat jam sibuk operasional.</p>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">&#128221; Rekap Rapi</p>
+      <p class="mt-2 text-sm text-slate-700">Data pembayaran dan histori aktivitas tercatat untuk evaluasi bisnis.</p>
+    </div>
+  </div>
+</section>
+
+<section class="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6">
+  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="text-base font-semibold text-slate-900">Skema Biaya Transparan</h2>
+      <span class="rounded-full border border-teal-200 bg-teal-50 px-2 py-1 text-[11px] font-semibold text-teal-700">
+        Biaya dasar: Rp {{ "{:,.0f}".format(base_fee_per_user).replace(",", ".") }}/user
+      </span>
+    </div>
+    <p class="mt-2 text-sm text-slate-600">
+      Perhitungan dibuat sederhana dan bisa diverifikasi langsung di dashboard router.
+    </p>
+    <div class="mt-4 grid gap-3 md:grid-cols-3">
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Rumus Tagihan</p>
+        <p class="mt-2 text-sm text-slate-700">
+          Total tagihan router = jumlah user terhitung x Rp {{ "{:,.0f}".format(base_fee_per_user).replace(",", ".") }}.
+        </p>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Jatuh Tempo</p>
+        <p class="mt-2 text-sm text-slate-700">
+          Pembayaran cycle router mengikuti jadwal bulanan, jatuh tempo setiap tanggal {{ router_billing_day }}.
+        </p>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Simulasi Cepat</p>
+        <p class="mt-2 text-sm text-slate-700">
+          50 user = Rp {{ "{:,.0f}".format(base_fee_per_user * 50).replace(",", ".") }} per cycle.
+        </p>
+      </div>
+    </div>
+    <div class="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+      Layanan ini fokus pada sistem manajemen dan billing router. Rincian biaya operasional ISP lain di luar sistem tetap dikelola oleh pemilik router.
+    </div>
+  </div>
+</section>
+
+<section class="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6">
+  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <h2 class="text-base font-semibold text-slate-900">Fleksibel Sesuai Kebutuhan Router</h2>
+    <div class="mt-4 grid gap-3 md:grid-cols-2">
+      <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-widest text-emerald-700">Mode Billing Aktif</p>
+        <p class="mt-2 text-sm text-emerald-900">
+          Cocok untuk pemilik router yang ingin fitur manajemen lengkap: monitoring, pengelolaan user, pembayaran pelanggan, dan audit log.
+        </p>
+      </div>
+      <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-widest text-amber-700">Mode Monitoring Saja</p>
+        <p class="mt-2 text-sm text-amber-900">
+          Tetap bisa daftar untuk mendapatkan alamat akses remote Winbox/WebFig dan monitoring user aktif. Menu manajemen billing penuh dapat diaktifkan saat siap.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6">
+  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <h2 class="text-base font-semibold text-slate-900">Mulai Dalam 3 Langkah</h2>
+    <div class="mt-4 grid gap-3 md:grid-cols-3">
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">1. Daftar Router</p>
+        <p class="mt-2 text-sm text-slate-700">Isi data singkat dan lanjutkan proses aktivasi dengan panduan yang disiapkan sistem.</p>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">2. Aktifkan Dashboard</p>
+        <p class="mt-2 text-sm text-slate-700">Masuk ke billing router untuk sinkronisasi data dan mulai pengelolaan harian.</p>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">3. Kelola Dengan Nyaman</p>
+        <p class="mt-2 text-sm text-slate-700">Pantau koneksi, atur pelanggan, dan rapikan pembayaran dalam satu panel.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6">
+  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <h2 class="text-base font-semibold text-slate-900">FAQ Singkat</h2>
+    <div class="mt-4 space-y-3">
+      <details class="rounded-xl border border-slate-200 bg-slate-50 p-4" open>
+        <summary class="cursor-pointer text-sm font-semibold text-slate-800">Apakah harus langsung aktifkan semua fitur billing?</summary>
+        <p class="mt-2 text-sm text-slate-700">
+          Tidak harus. Anda bisa mulai dari daftar router dulu untuk akses remote dan monitoring. Fitur billing lengkap bisa diaktifkan saat operasional sudah siap.
+        </p>
+      </details>
+      <details class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <summary class="cursor-pointer text-sm font-semibold text-slate-800">Kalau belum aktivasi billing, fitur apa yang tetap bisa dipakai?</summary>
+        <p class="mt-2 text-sm text-slate-700">
+          Anda tetap bisa menggunakan akses remote router (Winbox/WebFig) dan melihat monitoring user aktif untuk kebutuhan pengecekan harian.
+        </p>
+      </details>
+      <details class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <summary class="cursor-pointer text-sm font-semibold text-slate-800">Bagaimana supaya tagihan lebih mudah dipantau?</summary>
+        <p class="mt-2 text-sm text-slate-700">
+          Setelah billing aktif, sistem menampilkan rekap nominal, status pembayaran, dan histori audit sehingga kontrol operasional jadi lebih mudah.
+        </p>
+      </details>
+      <details class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <summary class="cursor-pointer text-sm font-semibold text-slate-800">Apakah sistem ini cocok untuk tim kecil?</summary>
+        <p class="mt-2 text-sm text-slate-700">
+          Cocok. Alur dibuat sederhana supaya operator bisa menjalankan tugas rutin lebih cepat tanpa proses manual yang berulang.
+        </p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="daftar-client" class="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6">
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+      <h2 class="font-semibold text-slate-800">Portal Client & Portfolio Implementasi</h2>
+      <span class="text-xs text-slate-500">Total: {{ routers|length }} router terdaftar</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table-modern">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Label / POP</th>
+            <th>Alamat</th>
+            <th>Status</th>
+            <th class="is-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in routers %}
+          <tr>
+            <td>{{ item.no }}</td>
+            <td class="font-medium text-slate-800">{{ item.label }}</td>
+            <td class="text-slate-600">{{ item.address or "-" }}</td>
+            <td>
+              {% if item.is_online %}
+              <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">{{ item.status_emoji }} {{ item.status_label }}</span>
+              {% else %}
+              <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600">{{ item.status_emoji }} {{ item.status_label }}</span>
+              {% endif %}
+            </td>
+            <td class="is-center">
+              <div class="table-actions">
+              {% if item.is_online %}
+              <a href="{{ url_for('public_monitor', router_id=item.id) }}" class="inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">&#128246; Monitor Active</a>
+              {% else %}
+              <span class="inline-flex cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-400">&#9940; Monitor Disabled</span>
+              {% endif %}
+              <a href="{{ url_for('billing_login', router_id=item.id) }}" class="inline-flex rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100">&#128274; Login Billing</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not routers %}
+          <tr>
+            <td colspan="5" class="is-center py-8 text-slate-500">Belum ada router client terdaftar.</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

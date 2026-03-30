@@ -1,0 +1,83 @@
+{% extends "base_public.html" %}
+
+{% block content %}
+<section class="mx-auto flex min-h-[72vh] w-full max-w-7xl items-center justify-center px-4 py-10 sm:px-6">
+  <div class="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="bg-gradient-to-r from-teal-700 to-emerald-600 px-6 py-5 text-white">
+      <p class="text-xs uppercase tracking-widest text-teal-100">Billing Reseller Internet</p>
+      <h1 class="mt-1 text-xl font-bold">Daftar Router Billing</h1>
+      <p class="mt-1 text-sm text-teal-100">Isi 3 data singkat, sistem akan membuat akun remote otomatis lalu menyimpan data router.</p>
+    </div>
+    <div class="px-6 py-5">
+      {% if register_error %}
+      <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ register_error }}</div>
+      {% endif %}
+      {% if register_ok %}
+      <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ register_ok }}</div>
+      {% endif %}
+      {% if register_data %}
+      <div class="mb-4 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-900">
+        <p class="font-semibold">Detail Akun L2TP</p>
+        <div class="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
+          <div>Connect To: <span class="font-semibold">{{ register_data.connect_to }}</span></div>
+          <div>Profile: <span class="font-semibold">{{ register_data.profile }}</span></div>
+          <div>Username: <span class="font-semibold">{{ register_data.username }}</span></div>
+          <div>Password: <span class="font-semibold">{{ register_data.password }}</span></div>
+          <div>Local: <span class="font-semibold">{{ register_data.local_address }}</span></div>
+          <div>Remote: <span class="font-semibold">{{ register_data.remote_address }}</span></div>
+          <div>WebFig Port: <span class="font-semibold">{{ register_data.webfig_port or '-' }}</span></div>
+          <div>WebFig URL: <span class="font-semibold">{{ register_data.webfig_url or '-' }}</span></div>
+          <div>Winbox Port: <span class="font-semibold">{{ register_data.winbox_port or '-' }}</span></div>
+          <div>Winbox: <span class="font-semibold">{{ register_data.winbox_endpoint or '-' }}</span></div>
+        </div>
+        {% if register_data.note %}
+        <p class="mt-2 text-xs text-teal-700">Notifikasi: {{ register_data.note }}</p>
+        {% endif %}
+      </div>
+      {% endif %}
+      <form id="billingRegisterForm" method="post" class="space-y-3">
+        <input type="hidden" name="_csrf_token" value="{{ form_csrf_token }}">
+        <input type="text" name="website" autocomplete="off" tabindex="-1" class="hidden" aria-hidden="true">
+        <input name="label" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Label / Nama POP" required>
+        <input name="address" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Alamat" required>
+        <input name="wa_number" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Nomor WA Pemilik Router" required>
+        <button id="billingRegisterSubmitBtn" type="submit" class="w-full rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700">Daftar & Buat Akun</button>
+      </form>
+      <div class="mt-4 flex items-center justify-between gap-2">
+        <a href="{{ url_for('root') }}" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Kembali</a>
+        <a href="{{ url_for('root') }}#daftar-client" class="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700 hover:bg-teal-100">Lihat List Router</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="billingRegisterLoading" class="fixed inset-0 z-[80] hidden items-center justify-center bg-slate-900/55 backdrop-blur-sm">
+  <div class="w-full max-w-xs rounded-2xl border border-teal-100 bg-white px-5 py-6 text-center shadow-2xl">
+    <div class="mx-auto mb-3 h-16 w-16 rounded-2xl border border-teal-100 bg-teal-50 p-2">
+      <img src="{{ url_for('static', filename='img/bayarinter-logo.svg') }}" alt="BayarInternet" class="h-full w-full animate-spin">
+    </div>
+    <p class="text-sm font-semibold text-slate-900">Billing Reseller Internet</p>
+    <p class="mt-1 text-xs text-slate-500">Memproses registrasi...</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var form = document.getElementById("billingRegisterForm");
+    var overlay = document.getElementById("billingRegisterLoading");
+    var submitBtn = document.getElementById("billingRegisterSubmitBtn");
+    if (!form || !overlay) return;
+
+    form.addEventListener("submit", function () {
+      overlay.classList.remove("hidden");
+      overlay.classList.add("flex");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Memproses...";
+      }
+    });
+  })();
+</script>
+{% endblock %}

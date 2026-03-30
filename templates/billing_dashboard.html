@@ -1,0 +1,408 @@
+{% extends "base_public.html" %}
+
+{% block content %}
+<section
+  id="billingRoot"
+  data-router-id="{{ router.id }}"
+  data-router-label="{{ router.label }}"
+  data-billing-locked="{{ 1 if billing_locked else 0 }}"
+  data-billing-warning="{{ billing_warning }}"
+  class="mx-auto w-full max-w-7xl px-4 pt-8 sm:px-6"
+>
+  <div class="rounded-3xl bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-600 p-6 text-white shadow-lg sm:p-8">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="text-xs uppercase tracking-widest text-teal-100">Billing Reseller Internet &#127760;</p>
+        <h1 class="mt-1 text-2xl font-bold sm:text-3xl">&#128188; {{ router.label }}</h1>
+        <p class="mt-1 text-sm text-teal-100">
+          Server Winbox: {{ winbox_server_host }}{% if winbox_server_port %}:{{ winbox_server_port }}{% endif %}
+          {% if winbox_router_port %} | IP Router: {{ router.ip }}:{{ winbox_router_port }}{% endif %}
+        </p>
+        <p class="mt-1 text-xs text-teal-100">API Router: {{ router.ip }}:{{ router.port }}{% if router.username %} | User: {{ router.username }}{% endif %}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="{{ url_for('root') }}" class="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold hover:bg-white/25">&#127968; Portal</a>
+        {% if webfig_url %}
+        <a href="{{ webfig_url }}" target="_blank" rel="noopener noreferrer" class="rounded-lg bg-sky-500/90 px-3 py-2 text-xs font-semibold hover:bg-sky-500">&#127760; Login WebFig</a>
+        {% endif %}
+        <a href="{{ url_for('billing_logout', router_id=router.id) }}" class="rounded-lg bg-rose-500/90 px-3 py-2 text-xs font-semibold hover:bg-rose-500">&#128682; Logout</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if billing_login_ok %}
+<div id="billingLoginToast" class="fixed right-4 top-20 z-[85] w-[min(92vw,420px)] rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-xl">
+  <p class="font-semibold">&#9989; Login Berhasil</p>
+  <p class="mt-1">{{ billing_login_ok }}</p>
+</div>
+{% endif %}
+
+<section class="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6">
+  {% if billing_locked %}
+  <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+    <p class="font-semibold">&#9888;&#65039; {{ billing_warning }}.</p>
+    <div class="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
+      <div class="rounded-lg border border-amber-200 bg-white/70 px-3 py-2">
+        <p class="text-amber-700">Cycle Wajib Lunas</p>
+        <p class="font-bold text-amber-900">{{ billing_summary.required_paid_label }}</p>
+      </div>
+      <div class="rounded-lg border border-amber-200 bg-white/70 px-3 py-2">
+        <p class="text-amber-700">Tagihan Bulanan</p>
+        <p class="font-bold text-amber-900">{{ billing_summary.router_user_count or 0 }} user x Rp {{ "{:,.0f}".format(billing_summary.base_fee_per_user or 0).replace(",", ".") }} = Rp {{ "{:,.0f}".format(billing_summary.monthly_fee or 0).replace(",", ".") }}</p>
+      </div> 
+      <div class="rounded-lg border border-amber-200 bg-white/70 px-3 py-2">
+        <p class="text-amber-700">Harus Dibayar Sekarang</p>
+        <p class="font-bold text-amber-900">Rp {{ "{:,.0f}".format(billing_summary.amount_due_current_cycle or 0).replace(",", ".") }}</p>
+      </div>
+      <div class="rounded-lg border border-amber-200 bg-white/70 px-3 py-2">
+        <p class="text-amber-700">Status</p>
+        <p class="font-bold text-amber-900">{{ billing_summary.status_billing }}</p>
+      </div>
+    </div>
+    <div class="mt-3 flex flex-wrap items-center gap-2">
+      <button id="requestQrisBtn" class="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700">
+        &#128228; Kirim Permintaan QRIS ke Admin
+      </button>
+      <span id="requestQrisInfo" class="text-xs text-amber-700"></span>
+    </div>
+  </div>
+  {% endif %}
+  <div id="billingStatus" class="mb-4 text-sm font-semibold text-slate-700"></div>
+  <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p class="text-xs uppercase tracking-widest text-slate-500">Active &#128101;</p>
+      <p id="kpiActive" class="mt-1 text-2xl font-bold text-slate-900">0</p>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p class="text-xs uppercase tracking-widest text-slate-500">PPP Secret &#128274;</p>
+      <p id="kpiSecret" class="mt-1 text-2xl font-bold text-slate-900">0</p>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p class="text-xs uppercase tracking-widest text-slate-500">Total Penerimaan &#128176;</p>
+      <p id="kpiRevenue" class="mt-1 text-lg font-bold text-slate-900">Rp 0</p>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p class="text-xs uppercase tracking-widest text-slate-500">Tunggakan &#129534;</p>
+      <p id="kpiDue" class="mt-1 text-lg font-bold text-slate-900">Rp 0</p>
+    </div>
+  </div>
+</section>
+
+<section class="mx-auto w-full max-w-7xl px-4 pb-8 pt-6 sm:px-6">
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-100 px-4 py-3">
+      <div class="flex flex-wrap gap-2">
+        <button id="tabActive" class="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white">&#128246; Active Connection</button>
+        <button id="tabSecret" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">&#128274; PPP Secret</button>
+        <button id="tabProfile" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">&#129513; Profile</button>
+        <button id="tabPayment" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">&#128179; Pembayaran</button>
+        <button id="tabLog" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">&#128220; Log</button>
+        <button id="tabGuide" class="rounded-lg border border-slate-200 bg-green-50 px-3 py-2 text-xs font-semibold text-slate-700">&#128218; Panduan</button>
+      </div>
+    </div>
+
+    <section id="panelActive" class="px-4 py-4">
+      <div class="mb-3 flex items-center gap-2">
+        <span class="text-xs font-semibold text-slate-700">&#128246; Active Connection</span>
+        <span id="activeCountBadge" class="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-700">0 user</span>
+      </div>
+      <div class="table-wrap">
+        <table class="table-modern">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Name</th>
+              <th>Address</th>
+              <th>Uptime</th>
+              <th>Aktif Mulai</th>
+              <th>Service</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="activeBody">
+            <tr><td colspan="7" class="is-center py-6 text-slate-500">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="panelSecret" class="hidden px-4 py-4">
+      <div class="mb-3 flex items-center justify-between gap-2">
+        <span class="text-xs font-semibold text-slate-700">&#128274; Manajemen PPP Secret</span>
+        <button id="secretOpenAddBtn" class="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700">
+          &#10133; Tambah Secret
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table class="table-modern">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Name</th>
+              <th>Profile</th>
+              <th>Local Address</th>
+              <th>Remote Address</th>
+              <th>Disabled</th>
+              <th>Last Logout</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="secretBody">
+            <tr><td colspan="8" class="is-center py-6 text-slate-500">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="panelProfile" class="hidden px-4 py-4">
+      <div class="table-wrap">
+        <table class="table-modern">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Name</th>
+              <th>Rate Limit</th>
+              <th>Only One</th>
+            </tr>
+          </thead>
+          <tbody id="profileBody">
+            <tr><td colspan="4" class="is-center py-6 text-slate-500">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="panelPayment" class="hidden px-4 py-4">
+      <div class="mb-3 flex items-center justify-between gap-2">
+        <span class="text-xs font-semibold text-slate-700">&#128179; Rekap pembayaran dan aksi penagihan</span>
+        <button id="paymentPrintBtn" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
+          &#128424;&#65039; Print Daftar Pembayaran
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table class="table-modern">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Name</th>
+              <th>Profile</th>
+              <th>Paket</th>
+              <th>Status</th>
+              <th>Total</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="paymentBody">
+            <tr><td colspan="7" class="is-center py-6 text-slate-500">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="panelLog" class="hidden px-4 py-4">
+      <div class="table-wrap">
+        <table class="table-modern">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Waktu</th>
+              <th>Secret</th>
+              <th>Aksi</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+            <tr><td colspan="5" class="is-center py-6 text-slate-500">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="panelGuide" class="hidden px-4 py-4">
+      <div class="mb-3 text-xs font-semibold text-slate-700">&#128218; Panduan Penggunaan Dashboard</div>
+      <div class="space-y-3">
+        <details class="rounded-xl border border-slate-200 bg-slate-50 p-4" open>
+          <summary class="cursor-pointer text-sm font-semibold text-slate-800">&#128246; Active Connection itu apa?</summary>
+          <div class="mt-2 space-y-2 text-sm text-slate-700">
+            <p>Tab ini menampilkan pelanggan yang sedang online real-time. Gunakan untuk pantau siapa yang sedang terhubung sekarang.</p>
+            <p>Fungsi utama:</p>
+            <ul class="list-disc pl-5">
+              <li><strong>Name</strong>: nama user PPP yang sedang aktif.</li>
+              <li><strong>Address</strong>: IP user saat terkoneksi.</li>
+              <li><strong>Uptime</strong>: lama user online (format singkat).</li>
+              <li><strong>Aktif Mulai</strong>: estimasi waktu mulai koneksi.</li>
+            </ul>
+            <p>Jika perlu putus koneksi dari sistem, klik tombol <strong>&#128268; Disconnect</strong> di baris user tersebut.</p>
+          </div>
+        </details>
+
+        <details class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <summary class="cursor-pointer text-sm font-semibold text-slate-800">&#128274; PPP Secret itu apa?</summary>
+          <div class="mt-2 space-y-2 text-sm text-slate-700">
+            <p>PPP Secret adalah akun pelanggan (username dan password) yang dipakai pelanggan untuk login internet di router Anda.</p>
+            <p>Aksi tombol yang tersedia:</p>
+            <ul class="list-disc pl-5">
+              <li><strong>&#10133; Tambah Secret</strong> untuk menambahkan akun pelanggan baru.</li>
+              <li><strong>&#9998;&#65039; Edit</strong> untuk ubah password, profile, local address, atau remote address.</li>
+              <li><strong>&#128683; Disable / &#9989; Enable</strong> untuk menonaktifkan atau mengaktifkan akun tanpa menghapus.</li>
+              <li><strong>&#128465;&#65039; Hapus</strong> untuk menghapus akun permanen.</li>
+            </ul>
+            <p>Catatan: saat <strong>&#9998;&#65039; Edit</strong>, kolom username dibuat readonly supaya identitas akun tidak berubah.</p>
+          </div>
+        </details>
+
+        <details class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <summary class="cursor-pointer text-sm font-semibold text-slate-800">&#129513; PPP Profile itu apa?</summary>
+          <div class="mt-2 space-y-2 text-sm text-slate-700">
+            <p>PPP Profile berisi aturan paket internet, misalnya rate-limit, batas satu login, dan parameter lain.</p>
+            <p>Di dashboard ini tab Profile masih untuk pemantauan (read-only). Pengaturan detail profile sementara tetap dilakukan di router pemilik agar konfigurasi utama tetap aman.</p>
+          </div>
+        </details>
+
+        <details class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <summary class="cursor-pointer text-sm font-semibold text-slate-800">&#128179; Pembayaran dipakai untuk apa?</summary>
+          <div class="mt-2 space-y-2 text-sm text-slate-700">
+            <p>Tab ini dipakai untuk mencatat pembayaran pelanggan per bulan dan memantau yang sudah bayar atau yang masih menunggak.</p>
+            <p>Aksi penting:</p>
+            <ul class="list-disc pl-5">
+              <li><strong>&#128179; Bayar</strong>: pilih pembayaran sampai bulan tertentu.</li>
+              <li><strong>&#10060; Batal Bayar</strong>: kembalikan status jika terjadi salah klik.</li>
+              <li><strong>&#128176; Input Paket</strong>: isi atau ubah nominal bulanan pelanggan.</li>
+              <li><strong>&#128424;&#65039; Print Daftar Pembayaran</strong>: cetak form penagihan lapangan (A4).</li>
+            </ul>
+            <p>Jika tagihan router belum lunas, hanya menu tertentu yang bisa diakses sampai admin konfirmasi pembayaran router.</p>
+          </div>
+        </details>
+
+        <details class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <summary class="cursor-pointer text-sm font-semibold text-slate-800">&#128220; Log itu apa?</summary>
+          <div class="mt-2 space-y-2 text-sm text-slate-700">
+            <p>Tab Log adalah riwayat aktivitas penting agar mudah audit bila ada komplain atau salah input.</p>
+            <p>Yang tercatat misalnya: aksi bayar, batal bayar, ubah nominal paket, dan waktu kejadian.</p>
+          </div>
+        </details>
+
+        <details class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <summary class="cursor-pointer text-sm font-semibold text-slate-800">&#128073; Tombol penting lain di halaman ini</summary>
+          <div class="mt-2 space-y-2 text-sm text-slate-700">
+            <p><strong>&#128228; Kirim Permintaan QRIS ke Admin</strong> untuk meminta kode pembayaran ke admin saat tagihan router belum lunas.</p>
+            <p><strong>&#127760; Login WebFig</strong> sebagai pintasan remote ke WebFig router Anda.</p>
+            <p><strong>&#128295; Portal</strong> untuk kembali ke daftar router publik dan monitor cepat.</p>
+            <p><strong>&#128682; Logout</strong> untuk keluar aman dari sesi billing router.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+  </div>
+</section>
+
+<div id="billingLoading" class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/55 backdrop-blur-sm">
+  <div class="w-full max-w-xs rounded-2xl border border-teal-100 bg-white px-5 py-6 text-center shadow-2xl">
+    <div class="mx-auto mb-3 h-16 w-16 rounded-2xl border border-teal-100 bg-teal-50 p-2">
+      <img src="{{ url_for('static', filename='img/bayarinter-logo.svg') }}" alt="BayarInternet" class="h-full w-full animate-spin">
+    </div>
+    <p class="text-sm font-semibold text-slate-900">Billing Reseller Internet</p>
+    <p id="billingLoadingText" class="mt-1 text-xs text-slate-500">Menyiapkan dashboard...</p>
+  </div>
+</div>
+
+<div id="payMonthModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 px-4">
+  <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+    <h3 class="text-sm font-bold text-slate-900">&#128179; Pilih Bulan Pembayaran</h3>
+    <p class="mt-1 text-xs text-slate-600">
+      User: <span id="payMonthUser" class="font-semibold text-slate-800">-</span>
+    </p>
+    <div class="mt-3">
+      <label for="payMonthSelect" class="mb-1 block text-xs font-semibold text-slate-700">Bayar sampai bulan</label>
+      <select id="payMonthSelect" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></select>
+    </div>
+    <p id="payMonthHint" class="mt-2 text-xs text-slate-500"></p>
+    <div class="mt-4 flex items-center justify-end gap-2">
+      <button id="payMonthCancelBtn" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+        &#10060; Batal
+      </button>
+      <button id="payMonthSubmitBtn" class="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">
+        &#9989; Konfirmasi Bayar
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="secretModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/50 px-4">
+  <div class="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+    <h3 id="secretModalTitle" class="text-sm font-bold text-slate-900">&#9997;&#65039; Tambah PPP Secret</h3>
+    <p id="secretModalHint" class="mt-1 text-xs text-slate-500">Password wajib diisi untuk user baru.</p>
+    <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div>
+        <label for="secretFormNameInput" class="mb-1 block text-xs font-semibold text-slate-700">Username</label>
+        <input id="secretFormNameInput" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="username">
+      </div>
+      <div>
+        <label for="secretFormPasswordInput" class="mb-1 block text-xs font-semibold text-slate-700">Password</label>
+        <input id="secretFormPasswordInput" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="password">
+      </div>
+      <div>
+        <label for="secretFormProfileInput" class="mb-1 block text-xs font-semibold text-slate-700">Profile</label>
+        <select id="secretFormProfileInput" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></select>
+      </div>
+      <div>
+        <label for="secretFormLocalAddressInput" class="mb-1 block text-xs font-semibold text-slate-700">Local Address (opsional)</label>
+        <input id="secretFormLocalAddressInput" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="10.10.10.1">
+      </div>
+      <div class="sm:col-span-2">
+        <label for="secretFormRemoteAddressInput" class="mb-1 block text-xs font-semibold text-slate-700">Remote Address (opsional)</label>
+        <input id="secretFormRemoteAddressInput" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="10.10.20.2">
+      </div>
+    </div>
+    <div class="mt-4 flex items-center justify-end gap-2">
+      <button id="secretModalCancelBtn" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+        &#10060; Batal
+      </button>
+      <button id="secretModalSubmitBtn" class="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700">
+        &#128190; Simpan
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="secretDeleteModal" class="fixed inset-0 z-[65] hidden items-center justify-center bg-slate-900/55 px-4">
+  <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+    <h3 class="text-sm font-bold text-slate-900">&#9888;&#65039; Hapus PPP Secret</h3>
+    <p class="mt-2 text-sm text-slate-600">
+      Yakin hapus user <span id="secretDeleteName" class="font-semibold text-slate-900">-</span>?
+    </p>
+    <p class="mt-1 text-xs text-slate-500">User akan dihapus dari router dan active connection terkait akan diputus.</p>
+    <div class="mt-4 flex items-center justify-end gap-2">
+      <button id="secretDeleteCancelBtn" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+        &#10060; Batal
+      </button>
+      <button id="secretDeleteConfirmBtn" class="rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700">
+        &#128465;&#65039; Hapus
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/billing.js') }}"></script>
+{% if billing_login_ok %}
+<script>
+  (function () {
+    var el = document.getElementById("billingLoginToast");
+    if (!el) return;
+    setTimeout(function () {
+      el.style.transition = "opacity .35s ease, transform .35s ease";
+      el.style.opacity = "0";
+      el.style.transform = "translateY(-8px)";
+      setTimeout(function () {
+        if (el && el.parentNode) {
+          el.parentNode.removeChild(el);
+        }
+      }, 360);
+    }, 4500);
+  })();
+</script>
+{% endif %}
+{% endblock %}
