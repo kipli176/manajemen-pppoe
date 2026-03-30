@@ -600,6 +600,7 @@ def billing_register_post():
         )
 
     try:
+        new_router_id = 0
         provision = core.register_and_provision_l2tp(
             label=label,
             address=address,
@@ -622,7 +623,7 @@ def billing_register_post():
                 f"IP remote {router_ip}:{router_port} sudah ada di data router. Coba daftar ulang dengan label POP lain."
             )
         try:
-            core.add_router(
+            new_router_id = core.add_router(
                 label=label,
                 address=address,
                 ip=router_ip,
@@ -683,6 +684,7 @@ def billing_register_post():
                 "webfig_url": provision.get("webfig_url"),
                 "winbox_port": provision.get("winbox_port"),
                 "winbox_endpoint": provision.get("winbox_endpoint"),
+                "router_id": int(new_router_id) if int(new_router_id) > 0 else None,
                 "note": notify_suffix.lstrip(" |"),
             },
         )

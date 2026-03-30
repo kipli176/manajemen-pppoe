@@ -18,6 +18,7 @@
       {% if register_data %}
       <div class="mb-4 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-900">
         <p class="font-semibold">Detail Akun L2TP</p>
+        <p class="mt-1 text-xs text-teal-700">&#9989; L2TP berhasil dibuat. Silakan login billing untuk mulai mengelola router Anda.</p>
         <div class="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
           <div>Connect To: <span class="font-semibold">{{ register_data.connect_to }}</span></div>
           <div>Profile: <span class="font-semibold">{{ register_data.profile }}</span></div>
@@ -45,7 +46,11 @@
       </form>
       <div class="mt-4 flex items-center justify-between gap-2">
         <a href="{{ url_for('root') }}" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Kembali</a>
-        <a href="{{ url_for('root') }}#daftar-client" class="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700 hover:bg-teal-100">Lihat List Router</a>
+        {% if register_data and register_data.router_id %}
+        <a href="{{ url_for('billing_login', router_id=register_data.router_id) }}" class="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700 hover:bg-teal-100">&#128274; Login</a>
+        {% else %}
+        <span class="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-500">&#128274; Login</span>
+        {% endif %}
       </div>
     </div>
   </div>
