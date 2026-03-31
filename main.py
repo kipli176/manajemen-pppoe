@@ -765,8 +765,8 @@ def billing_api_active(router_id: int):
 @require_billing_login_json
 def billing_api_disconnect_active(router_id: int):
     data: Dict[str, Any] = request.get_json(silent=True) or {}
-    active_id = data.get("id")
-    username = data.get("name")
+    active_id = str(data.get("id") or "").strip() or None
+    username = str(data.get("name") or "").strip() or None
     if not active_id and not username:
         return _json_error("Butuh id atau name untuk disconnect")
     try:

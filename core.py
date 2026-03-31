@@ -2067,15 +2067,34 @@ class MikroTikCore:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def _extract_active_id(self, item: Dict[str, Any]) -> str:
+        if not isinstance(item, dict):
+            return ""
+        candidate = item.get(".id")
+        if candidate is None:
+            candidate = item.get("id")
+        return str(candidate or "").strip()
+
     def _remove_active_by_name(self, api, username: str) -> int:
         active_resource = api.get_resource("/ppp/active")
-        active_list = active_resource.get(name=username)
+        target = str(username or "").strip()
+        if not target:
+            return 0
+        active_list = active_resource.get()
         removed = 0
         for item in active_list:
-            item_id = item.get(".id")
-            if item_id:
+            current_name = str(item.get("name") or "").strip()
+            if current_name != target:
+                continue
+            item_id = self._extract_active_id(item)
+            if not item_id:
+                continue
+            try:
                 active_resource.remove(id=item_id)
-                removed += 1
+            except Exception:
+                # Kompatibilitas: sebagian ROS/API menerima argumen "numbers".
+                active_resource.remove(numbers=item_id)
+            removed += 1
         return removed
 
     def disconnect_active(self, router_id: int, active_id: Optional[str] = None, username: Optional[str] = None) -> int:
@@ -2086,13 +2105,18 @@ class MikroTikCore:
         with self._api(router) as api:
             active_resource = api.get_resource("/ppp/active")
             removed = 0
+            clean_active_id = str(active_id or "").strip()
+            clean_username = str(username or "").strip()
 
-            if active_id:
-                active_resource.remove(id=active_id)
+            if clean_active_id:
+                try:
+                    active_resource.remove(id=clean_active_id)
+                except Exception:
+                    active_resource.remove(numbers=clean_active_id)
                 removed += 1
 
-            if username:
-                removed += self._remove_active_by_name(api, username)
+            if clean_username:
+                removed += self._remove_active_by_name(api, clean_username)
 
         return removed
 

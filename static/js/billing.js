@@ -344,9 +344,10 @@
     }
     body.innerHTML = state.active.map(function (item, i) {
       var rowClass = "table-row-ui";
+      var activeId = item[".id"] || item.id || "";
       var btn = billingLocked
         ? "<span class='text-xs text-slate-500'>Read-only</span>"
-        : "<button class='rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100' data-action='disconnect-active' data-id='" + esc(item[".id"] || "") + "' data-name='" + esc(item.name || "") + "'>&#128268; Disconnect</button>";
+        : "<button class='rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100' data-action='disconnect-active' data-id='" + esc(activeId) + "' data-name='" + esc(item.name || "") + "'>&#128268; Disconnect</button>";
       return "<tr class='" + rowClass + "'>" +
         "<td class='px-3 py-2'>" + (i + 1) + "</td>" +
         "<td class='px-3 py-2'>" + esc(item.name || "-") + "</td>" +
@@ -1011,8 +1012,17 @@
       method: "POST",
       body: JSON.stringify({ id: id || null, name: name || null })
     })
-      .then(function () { return loadActive(true, true); })
-      .then(function () { setStatus("User active berhasil di-disconnect.", false); })
+      .then(function (data) {
+        return loadActive(true, true).then(function () { return data; });
+      })
+      .then(function (data) {
+        var total = Number((data && data.removed) || 0);
+        if (total > 0) {
+          setStatus("User active berhasil di-disconnect.", false);
+        } else {
+          setStatus("User tidak ditemukan di active list saat proses disconnect.", true);
+        }
+      })
       .catch(function (err) { setStatus(err.message, true); });
   }
 
