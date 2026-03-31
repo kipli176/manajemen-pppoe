@@ -7,7 +7,7 @@ import ipaddress
 import socket
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib import parse as urlparse
@@ -163,6 +163,10 @@ class MikroTikCore:
             conn.execute("ALTER TABLE routers ADD COLUMN l2tp_password TEXT NOT NULL DEFAULT ''")
         if "l2tp_secret_id" not in columns:
             conn.execute("ALTER TABLE routers ADD COLUMN l2tp_secret_id TEXT NOT NULL DEFAULT ''")
+        if "auto_close_unpaid_end_month" not in columns:
+            conn.execute("ALTER TABLE routers ADD COLUMN auto_close_unpaid_end_month INTEGER NOT NULL DEFAULT 0")
+        if "auto_close_last_run_month" not in columns:
+            conn.execute("ALTER TABLE routers ADD COLUMN auto_close_last_run_month TEXT")
 
         # Backfill data lama: jika dulu akun L2TP disimpan di kolom username/password,
         # pindahkan ke kolom khusus l2tp_* supaya tidak bentrok dengan kredensial API router.
@@ -653,6 +657,167 @@ class MikroTikCore:
             """,
             (key, value),
         )
+
+    def get_payment_preferences(self, router_id: int) -> Dict[str, Any]:
+        with self._db() as conn:
+            row = conn.execute(
+                """
+                SELECT auto_close_unpaid_end_month
+                FROM routers
+                WHERE id = ?
+                """,
+                (int(router_id),),
+            ).fetchone()
+        if not row:
+            raise CoreError("Router tidak ditemukan di database")
+        return {
+            "auto_close_unpaid_end_month": bool(int(row["auto_close_unpaid_end_month"] or 0)),
+        }
+
+    def set_payment_preferences(
+        self,
+        router_id: int,
+        *,
+        auto_close_unpaid_end_month: bool,
+    ) -> Dict[str, Any]:
+        with self._db() as conn:
+            row = conn.execute(
+                "SELECT id FROM routers WHERE id = ?",
+                (int(router_id),),
+            ).fetchone()
+            if not row:
+                raise CoreError("Router tidak ditemukan di database")
+
+            next_value = 1 if bool(auto_close_unpaid_end_month) else 0
+            conn.execute(
+                """
+                UPDATE routers
+                SET auto_close_unpaid_end_month = ?,
+                    auto_close_last_run_month = CASE
+                        WHEN ? = 0 THEN NULL
+                        ELSE auto_close_last_run_month
+                    END
+                WHERE id = ?
+                """,
+                (next_value, next_value, int(router_id)),
+            )
+
+        return {
+            "auto_close_unpaid_end_month": bool(next_value),
+        }
+
+    def _is_month_end_cutoff(self, dt: datetime) -> bool:
+        if int(dt.hour) < 18:
+            return False
+        next_day = dt + timedelta(days=1)
+        return next_day.month != dt.month
+
+    def _run_auto_close_unpaid_end_month(
+        self,
+        conn: sqlite3.Connection,
+        current_dt: datetime,
+    ) -> Dict[str, Any]:
+        current_idx = self._month_index(current_dt.year, current_dt.month)
+        current_month = self._month_str_from_index(current_idx)
+        result: Dict[str, Any] = {
+            "ran": False,
+            "reason": "",
+            "updated_routers": 0,
+            "updated_users": 0,
+            "month": current_month,
+        }
+
+        if not self._is_month_end_cutoff(current_dt):
+            result["reason"] = "skip_not_month_end_or_before_cutoff"
+            return result
+
+        rows = conn.execute(
+            """
+            SELECT id, label, ip, created_at, auto_close_last_run_month
+            FROM routers
+            WHERE COALESCE(auto_close_unpaid_end_month, 0) = 1
+            ORDER BY id
+            """
+        ).fetchall()
+        if not rows:
+            result["reason"] = "skip_no_router_enabled"
+            return result
+
+        updated_routers = 0
+        updated_users = 0
+        for row in rows:
+            router_id = int(row["id"])
+            label = str(row["label"] or "-")
+            ip = str(row["ip"] or "-")
+            last_run_month = str(row["auto_close_last_run_month"] or "").strip()
+            if last_run_month == current_month:
+                continue
+
+            created_dt = self._parse_db_datetime(row["created_at"])
+            if created_dt is None:
+                created_dt = current_dt
+            start_idx = self._month_index(created_dt.year, created_dt.month)
+
+            items = conn.execute(
+                """
+                SELECT secret_name, paid_until_month
+                FROM payment_state
+                WHERE router_id = ?
+                """,
+                (router_id,),
+            ).fetchall()
+            changed_this_router = 0
+            for item in items:
+                secret_name = str(item["secret_name"] or "").strip()
+                if not secret_name:
+                    continue
+                paid_idx = self._month_index_from_str(item["paid_until_month"])
+                effective_paid_idx = (start_idx - 1) if paid_idx is None else max(paid_idx, start_idx - 1)
+                if effective_paid_idx >= current_idx:
+                    continue
+
+                conn.execute(
+                    """
+                    UPDATE payment_state
+                    SET paid_until_month = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE router_id = ? AND secret_name = ?
+                    """,
+                    (current_month, router_id, secret_name),
+                )
+                conn.execute(
+                    """
+                    INSERT INTO payment_audit (router_id, router_label, router_ip, secret_name, action, detail)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        router_id,
+                        label,
+                        ip,
+                        secret_name,
+                        "auto_pay_month_end",
+                        f"Auto-lunas akhir bulan {self._month_label(current_idx)} (cutoff 18:00)",
+                    ),
+                )
+                changed_this_router += 1
+
+            conn.execute(
+                """
+                UPDATE routers
+                SET auto_close_last_run_month = ?
+                WHERE id = ?
+                """,
+                (current_month, router_id),
+            )
+
+            if changed_this_router > 0:
+                updated_routers += 1
+                updated_users += changed_this_router
+
+        result["ran"] = True
+        result["reason"] = "executed"
+        result["updated_routers"] = int(updated_routers)
+        result["updated_users"] = int(updated_users)
+        return result
 
     def _normalize_wa_number(self, value: Optional[str]) -> str:
         raw = "".join(ch for ch in str(value or "") if ch.isdigit())
@@ -1419,9 +1584,19 @@ class MikroTikCore:
             "reminder_day": ROUTER_REMINDER_DAY,
             "reminder_sent": 0,
             "reminder_reason": "",
+            "ran_auto_close_unpaid_end_month": False,
+            "auto_close_reason": "",
+            "auto_close_updated_routers": 0,
+            "auto_close_updated_users": 0,
         }
 
         with self._db() as conn:
+            auto_close_result = self._run_auto_close_unpaid_end_month(conn, current_dt)
+            result["ran_auto_close_unpaid_end_month"] = bool(auto_close_result.get("ran"))
+            result["auto_close_reason"] = str(auto_close_result.get("reason") or "")
+            result["auto_close_updated_routers"] = int(auto_close_result.get("updated_routers") or 0)
+            result["auto_close_updated_users"] = int(auto_close_result.get("updated_users") or 0)
+
             if current_dt.day != ROUTER_REMINDER_DAY:
                 result["reminder_reason"] = "skip_not_reminder_day"
                 return result

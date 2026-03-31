@@ -15,6 +15,9 @@
     secrets: [],
     profiles: [],
     payments: [],
+    paymentSettings: {
+      auto_close_unpaid_end_month: false
+    },
     logs: [],
     editing: null,
     loadingCount: 0,
@@ -545,6 +548,7 @@
   }
 
   function renderPayments() {
+    renderPaymentPreferences();
     var body = $("paymentBody");
     if (!body) return;
     if (!state.payments.length) {
@@ -574,6 +578,23 @@
         "<td class='px-3 py-2'><div class='table-actions'>" + actions + "</div></td>" +
       "</tr>";
     }).join("");
+  }
+
+  function renderPaymentPreferences() {
+    var toggle = $("paymentAutoCloseToggle");
+    var info = $("paymentAutoCloseInfo");
+    if (!toggle) return;
+    var enabled = Boolean(state.paymentSettings && state.paymentSettings.auto_close_unpaid_end_month);
+    toggle.checked = enabled;
+    if (billingLocked) {
+      toggle.disabled = true;
+    }
+    if (info) {
+      info.textContent = enabled ? "Aktif: akhir bulan 18:00 akan auto-lunas" : "Nonaktif";
+      info.className = enabled
+        ? "text-[11px] font-semibold text-emerald-700"
+        : "text-[11px] text-slate-500";
+    }
   }
 
   function printPaymentsSheet() {
@@ -875,6 +896,7 @@
       .then(function (results) {
         var data = results[1] || {};
         state.payments = data.items || [];
+        state.paymentSettings = data.settings || state.paymentSettings || { auto_close_unpaid_end_month: false };
         markCacheLoaded("payments");
         renderPayments();
         renderKpi();
@@ -988,6 +1010,31 @@
       });
   }
 
+  function updatePaymentPreferences(nextEnabled, toggleEl) {
+    var previous = Boolean(state.paymentSettings && state.paymentSettings.auto_close_unpaid_end_month);
+    if (toggleEl) toggleEl.disabled = true;
+    apiFetch(
+      "/billing/api/" + routerId + "/payments/preferences",
+      {
+        method: "POST",
+        body: JSON.stringify({ auto_close_unpaid_end_month: Boolean(nextEnabled) })
+      }
+    )
+      .then(function (data) {
+        state.paymentSettings = (data && data.settings) || { auto_close_unpaid_end_month: Boolean(nextEnabled) };
+        renderPaymentPreferences();
+        setStatus("Pengaturan auto-lunas akhir bulan diperbarui.", false);
+      })
+      .catch(function (err) {
+        state.paymentSettings = { auto_close_unpaid_end_month: previous };
+        renderPaymentPreferences();
+        setStatus(err.message, true);
+      })
+      .finally(function () {
+        if (toggleEl) toggleEl.disabled = false;
+      });
+  }
+
   function paymentAction(name, action, targetMonth, targetMonthLabel, skipConfirm) {
     var label = action === "pay" ? "Bayar" : "Batal bayar";
     var confirmText = label + " user " + name + "?";
@@ -1074,6 +1121,12 @@
     var paymentPrintBtn = $("paymentPrintBtn");
     if (paymentPrintBtn) {
       paymentPrintBtn.addEventListener("click", printPaymentsSheet);
+    }
+    var autoCloseToggle = $("paymentAutoCloseToggle");
+    if (autoCloseToggle) {
+      autoCloseToggle.addEventListener("change", function () {
+        updatePaymentPreferences(Boolean(autoCloseToggle.checked), autoCloseToggle);
+      });
     }
     var payCancelBtn = $("payMonthCancelBtn");
     if (payCancelBtn) {

@@ -889,7 +889,8 @@ def billing_api_secret_remove(router_id: int):
 def billing_api_payments(router_id: int):
     try:
         items = core.list_payments(router_id)
-        return jsonify({"ok": True, "items": items})
+        settings = core.get_payment_preferences(router_id)
+        return jsonify({"ok": True, "items": items, "settings": settings})
     except CoreError as exc:
         return _json_error(str(exc), 500)
 
@@ -909,6 +910,22 @@ def billing_api_payments_fee(router_id: int):
     try:
         core.update_payment_monthly_fee(router_id, name, monthly_fee)
         return jsonify({"ok": True})
+    except CoreError as exc:
+        return _json_error(str(exc), 500)
+
+
+@app.post("/billing/api/<int:router_id>/payments/preferences")
+@require_billing_login_json
+@require_router_paid_json
+def billing_api_payments_preferences(router_id: int):
+    data: Dict[str, Any] = request.get_json(silent=True) or {}
+    next_auto_close = bool(data.get("auto_close_unpaid_end_month", False))
+    try:
+        settings = core.set_payment_preferences(
+            router_id,
+            auto_close_unpaid_end_month=next_auto_close,
+        )
+        return jsonify({"ok": True, "settings": settings})
     except CoreError as exc:
         return _json_error(str(exc), 500)
 
