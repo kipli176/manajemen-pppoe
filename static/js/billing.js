@@ -393,7 +393,13 @@
     setEditMode(null);
   }
 
-  function openSecretAddModal() {
+  function openSecretAddModal(profilesReady) {
+    if (!profilesReady && !state.profiles.length) {
+      loadProfiles(true, false).finally(function () {
+        openSecretAddModal(true);
+      });
+      return;
+    }
     setEditMode(null);
     var titleEl = $("secretModalTitle");
     var hintEl = $("secretModalHint");
@@ -421,7 +427,13 @@
     openSecretModal();
   }
 
-  function openSecretEditModal(name) {
+  function openSecretEditModal(name, profilesReady) {
+    if (!profilesReady && !state.profiles.length) {
+      loadProfiles(true, false).finally(function () {
+        openSecretEditModal(name, true);
+      });
+      return;
+    }
     var item = state.secrets.find(function (entry) {
       return String(entry.name || "") === String(name || "");
     });
