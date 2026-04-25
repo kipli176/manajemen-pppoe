@@ -398,7 +398,8 @@
   }
 
   function openSecretAddModal(profilesReady) {
-    if (!profilesReady && !state.profiles.length) {
+    var ready = profilesReady === true;
+    if (!ready && !state.profiles.length) {
       loadProfiles(true, false).finally(function () {
         openSecretAddModal(true);
       });
@@ -1147,7 +1148,9 @@
 
     var secretOpenAddBtn = $("secretOpenAddBtn");
     if (secretOpenAddBtn) {
-      secretOpenAddBtn.addEventListener("click", openSecretAddModal);
+      secretOpenAddBtn.addEventListener("click", function () {
+        openSecretAddModal(false);
+      });
     }
     var secretModalCancelBtn = $("secretModalCancelBtn");
     if (secretModalCancelBtn) {
