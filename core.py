@@ -21,6 +21,29 @@ class CoreError(Exception):
     pass
 
 
+def _load_local_env(env_path: str = ".env") -> None:
+    path = Path(env_path)
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        os.environ[key] = value.strip().strip('"').strip("'")
+
+
+def _env_bool(name: str, default: str = "0") -> bool:
+    value = str(os.environ.get(name, default) or "").strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+_load_local_env()
+
+
 ROUTER_BILLING_DAY = 25
 ROUTER_BASE_FEE_PER_USER = 500
 ROUTER_REMINDER_DAY = max(1, ROUTER_BILLING_DAY - 3)
@@ -35,7 +58,7 @@ ROS7_REST_BASE_URL = os.environ.get("ROS7_REST_BASE_URL", "https://server.kipli.
 ROS7_REST_USERNAME = os.environ.get("ROS7_REST_USERNAME", "").strip()
 ROS7_REST_PASSWORD = os.environ.get("ROS7_REST_PASSWORD", "")
 ROS7_REST_TIMEOUT_SECONDS = int(os.environ.get("ROS7_REST_TIMEOUT_SECONDS", "20"))
-ROS7_REST_VERIFY_SSL = os.environ.get("ROS7_REST_VERIFY_SSL", "1") == "1"
+ROS7_REST_VERIFY_SSL = _env_bool("ROS7_REST_VERIFY_SSL", "1")
 ROS7_L2TP_SECRET_PROFILE = os.environ.get("ROS7_L2TP_SECRET_PROFILE", "default")
 ROS7_L2TP_DEFAULT_PASSWORD = os.environ.get("ROS7_L2TP_DEFAULT_PASSWORD", "").strip()
 ROS7_L2TP_CONNECT_TO = os.environ.get("ROS7_L2TP_CONNECT_TO", "server.kipli.net")
